@@ -6,7 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class Pet extends Model
 {
-    protected $fillable = ['name', 'type', 'breed', 'age', 'description', 'image_path', 'status', 'health_summary'];
+    protected $fillable = [
+    'name', 
+    'type', 
+    'breed', 
+    'age', 
+    'description', 
+    'image', 
+    'status', // <--- THIS MUST BE IN THE ARRAY
+    'health_summary'
+];
 
     public function medicalRecords()
     {
@@ -14,7 +23,8 @@ class Pet extends Model
     }
 
     public function applications()
-    {
-        return $this->hasMany(Application::class);
-    }
+{
+    // Make sure the namespace is exactly like this:
+    return $this->hasMany(\App\Models\Application::class);
+}
 }

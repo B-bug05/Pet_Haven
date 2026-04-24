@@ -7,7 +7,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-
+use App\Models\Application;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -46,5 +46,34 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function applications()
+    {
+        // Removing the leading slash since you are already in the App\Models namespace
+        return $this->hasMany(Application::class);
+    }
+
+    // The pets this user has favorited
+    public function favorites()
+    {
+        return $this->belongsToMany(Pet::class, 'favorites');
+    }
+    // Inside app/Models/User.php
+
+    public function isStaff()
+    {
+        // Admins usually get staff privileges too!
+        return $this->role === 'staff' || $this->role === 'admin';
+    }
+
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isAdopter()
+    {
+        return $this->role === 'adopter';
     }
 }

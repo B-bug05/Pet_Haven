@@ -25,9 +25,26 @@ class AuthenticatedSessionController extends Controller
     public function store(LoginRequest $request): RedirectResponse
     {
         $request->authenticate();
-
         $request->session()->regenerate();
 
+        // 🚦 THE MASTER TRAFFIC DIRECTOR
+        $role = $request->user()->role;
+        
+        if ($role === 'admin') {
+            return redirect()->intended(route('admin.dashboard'));
+        }
+        
+        if ($role === 'staff') {
+            return redirect()->intended(route('staff.dashboard'));
+        }
+
+        // --- ADOPTER LOGIC ---
+        // 🌟 If they clicked "Meet [Pet]" and the modal passed the URL, send them there!
+        if ($request->filled('redirect_to')) {
+            return redirect($request->redirect_to);
+        }
+
+        // Default: Adopter goes to their dashboard
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

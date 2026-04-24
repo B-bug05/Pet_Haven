@@ -18,13 +18,20 @@ return new class extends Migration
             $table->string('breed')->nullable();
             $table->string('age')->nullable();
             $table->text('description')->nullable();
-            $table->string('image_path')->nullable();
-            $table->enum('status', ['available', 'pending', 'adopted', 'archived'])->default('available');
+            $table->string('image')->nullable();
+            
+            // UPDATED: New Pet Status Wording
+            $table->enum('status', [
+                'Ready for Adoption', 
+                'Under Review', 
+                'Found a Home', 
+                'No Longer Available'
+            ])->default('Ready for Adoption');
+            
             $table->text('health_summary')->nullable(); // Our "Other Medical Issues"
             $table->timestamps();
         });
     }
-
     /**
      * Reverse the migrations.
      */
