@@ -68,4 +68,24 @@ class AdminController extends Controller
         $logs = ActivityLog::latest()->paginate(20);
         return view('admin.logs', compact('logs'));
     }
+
+    public function verifyUser(Request $request, \App\Models\User $user)
+{
+    $request->validate([
+        'action' => 'required|in:verify,reject',
+    ]);
+
+    $user->update([
+        'verification_status' => $request->action === 'verify' ? 'verified' : 'rejected',
+    ]);
+
+    \App\Models\ActivityLog::create([
+        'type'   => 'system',
+        'title'  => auth()->user()->name . ' ' . ($request->action === 'verify' ? 'verified' : 'rejected') . ' ' . $user->name . "'s ID.",
+        'status' => $user->verification_status,
+        'icon'   => $request->action === 'verify' ? '✅' : '❌',
+    ]);
+
+    return back()->with('success', $user->name . "'s verification has been updated.");
+}
 }

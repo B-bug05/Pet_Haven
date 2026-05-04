@@ -42,6 +42,7 @@
         <div class="px-8 flex border-b border-stone-100 gap-8 shrink-0 bg-white">
             <button type="button" @click="tab = 'details'" :class="tab === 'details' ? 'border-orange-500 text-orange-600' : 'border-transparent text-stone-400'" class="py-4 border-b-2 font-bold text-[10px] uppercase tracking-widest transition">Details</button>
             <button type="button" @click="tab = 'health'" :class="tab === 'health' ? 'border-orange-500 text-orange-600' : 'border-transparent text-stone-400'" class="py-4 border-b-2 font-bold text-[10px] uppercase tracking-widest transition">Health Record</button>
+            <button type="button" @click="tab = 'photos'" :class="tab === 'photos' ? 'border-orange-500 text-orange-600' : 'border-transparent text-stone-400'" class="py-4 border-b-2 font-bold text-[10px] uppercase tracking-widest transition">Photos</button>
         </div>
 
         {{-- Dynamic Content Area --}}
@@ -98,7 +99,58 @@
                     <p class="text-[10px] text-stone-400 mt-1 italic">This overwrites the current medical status.</p>
                 </div>
             </div>
+            
+            {{-- TAB 3: PHOTOS --}}
+            <div x-show="tab === 'photos'" class="space-y-5">
 
+                {{-- Upload New Photos --}}
+                <div>
+                    <label class="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2">Add Photos</label>
+                    <form :action="`/staff/pets/${modalData?.id}/photos`" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <div class="border-2 border-dashed border-stone-200 rounded-xl p-6 text-center hover:border-orange-400 hover:bg-orange-50/30 transition">
+                            <span class="text-3xl block mb-2">🖼️</span>
+                            <p class="text-xs text-stone-400 font-bold uppercase tracking-wide mb-3">Select multiple photos</p>
+                            <input type="file" name="photos[]" multiple accept="image/jpeg,image/png,image/jpg,image/webp"
+                                class="block w-full text-xs text-stone-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-orange-500 file:text-white file:font-bold file:cursor-pointer hover:file:bg-orange-600">
+                        </div>
+                        <button type="submit" class="mt-3 w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest transition">
+                            Upload Photos
+                        </button>
+                    </form>
+                </div>
+
+                {{-- Existing Gallery Photos --}}
+                <div>
+                    <label class="block text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2">Current Gallery</label>
+                    <div class="grid grid-cols-3 gap-3" id="photo-gallery-grid">
+                        @if(isset($editPet) && $editPet->photos->count() > 0)
+                            @foreach($editPet->photos as $photo)
+                                <div class="relative group aspect-square rounded-xl overflow-hidden border border-stone-200">
+                                    <img src="{{ asset('storage/' . $photo->image) }}"
+                                        class="w-full h-full object-cover"
+                                        onerror="this.src='https://placehold.co/200x200?text=Error'">
+                                    <div class="absolute inset-0 bg-stone-900/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                        <form method="POST" action="{{ route('staff.pets.photos.destroy', [$photo->pet_id, $photo->id]) }}"
+                                            onsubmit="return confirm('Remove this photo?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit"
+                                                    class="bg-red-500 hover:bg-red-600 text-white rounded-lg px-3 py-1.5 text-xs font-bold transition">
+                                                Remove
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            @endforeach
+                        @else
+                            <div class="col-span-3 text-center py-6 text-stone-400 text-xs font-bold">
+                                No gallery photos yet.
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
         </div>
 
         {{-- Fixed Bottom Action Footer --}}

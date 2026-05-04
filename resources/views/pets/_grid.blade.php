@@ -55,15 +55,9 @@
             </p>
             
             @auth
-                @if($pet->status === 'Under Review')
-                    <a href="{{ route('pets.show', $pet->id) }}" style="display: block; text-align: center; width: 100%; padding: 0.75rem; background: #f0ebe1; color: #999; text-decoration: none; border-radius: 8px; font-weight: 600;">
-                        Under Review - View Profile
-                    </a>
-                @else
-                    <a href="{{ route('pets.show', $pet->id) }}" style="display: block; text-align: center; width: 100%; padding: 0.75rem; background: #e67e22; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
-                        Learn about {{ $pet->name }}
-                    </a>
-                @endif
+                <a href="{{ route('pets.show', $pet->id) }}" style="display: block; text-align: center; width: 100%; padding: 0.75rem; background: #e67e22; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+                    Learn about {{ $pet->name }}
+                </a>
             @else
                 <button class="btn-meet" onclick="openLoginModalForPet('{{ route('pets.show', $pet->id) }}')" style="width: 100%; padding: 0.75rem; background: #e67e22; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
                     Meet {{ $pet->name }}

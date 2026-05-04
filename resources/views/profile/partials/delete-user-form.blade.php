@@ -1,55 +1,44 @@
-<section class="space-y-6">
-    <header>
-        <h2 class="text-lg font-medium text-gray-900">
-            {{ __('Delete Account') }}
-        </h2>
+<section>
+    <h2 style="font-size: 1.1rem; font-weight: 700; color: #991b1b; margin: 0 0 0.25rem 0;">⚠️ Delete Account</h2>
+    <p style="color: var(--text-muted); font-size: 0.875rem; margin: 0 0 1.5rem 0;">
+        Once your account is deleted, all data will be permanently removed. This cannot be undone.
+    </p>
 
-        <p class="mt-1 text-sm text-gray-600">
-            {{ __('Once your account is deleted, all of its resources and data will be permanently deleted. Before deleting your account, please download any data or information that you wish to retain.') }}
+    <button type="button" onclick="document.getElementById('deleteAccountDialog').showModal()"
+        style="background: #dc2626; color: white; border: none; padding: 0.7rem 1.75rem; border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer;">
+        Delete My Account
+    </button>
+
+    {{-- Native Dialog for confirmation --}}
+    <dialog id="deleteAccountDialog" style="border: none; border-radius: 16px; padding: 2rem; max-width: 420px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.15);">
+        <h3 style="color: #991b1b; font-size: 1.1rem; font-weight: 700; margin: 0 0 0.5rem 0;">Are you absolutely sure?</h3>
+        <p style="color: var(--text-muted); font-size: 0.875rem; margin: 0 0 1.5rem 0;">
+            This will permanently delete your account and all your applications. Please enter your password to confirm.
         </p>
-    </header>
 
-    <x-danger-button
-        x-data=""
-        x-on:click.prevent="$dispatch('open-modal', 'confirm-user-deletion')"
-    >{{ __('Delete Account') }}</x-danger-button>
-
-    <x-modal name="confirm-user-deletion" :show="$errors->userDeletion->isNotEmpty()" focusable>
-        <form method="post" action="{{ route('profile.destroy') }}" class="p-6">
+        <form method="POST" action="{{ route('profile.destroy') }}">
             @csrf
-            @method('delete')
+            @method('DELETE')
 
-            <h2 class="text-lg font-medium text-gray-900">
-                {{ __('Are you sure you want to delete your account?') }}
-            </h2>
-
-            <p class="mt-1 text-sm text-gray-600">
-                {{ __('Once your account is deleted, all of its resources and data will be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.') }}
-            </p>
-
-            <div class="mt-6">
-                <x-input-label for="password" value="{{ __('Password') }}" class="sr-only" />
-
-                <x-text-input
-                    id="password"
-                    name="password"
-                    type="password"
-                    class="mt-1 block w-3/4"
-                    placeholder="{{ __('Password') }}"
-                />
-
-                <x-input-error :messages="$errors->userDeletion->get('password')" class="mt-2" />
+            <div style="margin-bottom: 1.25rem;">
+                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-dark); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.5px;">Password</label>
+                <input type="password" name="password" placeholder="Enter your password to confirm"
+                    style="width: 100%; padding: 0.75rem 1rem; border: 1.5px solid #fecaca; border-radius: 10px; font-size: 0.95rem; outline: none; font-family: inherit; box-sizing: border-box;">
+                @error('password', 'userDeletion')
+                    <p style="color: #e3342f; font-size: 0.8rem; margin-top: 0.25rem;">{{ $message }}</p>
+                @enderror
             </div>
 
-            <div class="mt-6 flex justify-end">
-                <x-secondary-button x-on:click="$dispatch('close')">
-                    {{ __('Cancel') }}
-                </x-secondary-button>
-
-                <x-danger-button class="ms-3">
-                    {{ __('Delete Account') }}
-                </x-danger-button>
+            <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                <button type="button" onclick="document.getElementById('deleteAccountDialog').close()"
+                    style="background: #f5f5f5; color: #555; border: none; padding: 0.65rem 1.5rem; border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer;">
+                    Cancel
+                </button>
+                <button type="submit"
+                    style="background: #dc2626; color: white; border: none; padding: 0.65rem 1.5rem; border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer;">
+                    Yes, Delete Account
+                </button>
             </div>
         </form>
-    </x-modal>
+    </dialog>
 </section>

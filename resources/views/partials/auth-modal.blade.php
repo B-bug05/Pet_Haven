@@ -15,6 +15,7 @@
         <form id="form-login" class="auth-form active" method="POST" action="{{ route('login') }}">
             @csrf
             <input type="hidden" name="redirect_to" id="login_redirect_to" value="">
+            <input type="hidden" name="_tab" value="login">
             <div class="input-group">
                 <label>Email Address</label>
                 <input type="email" name="email" required placeholder="name@example.com" value="{{ old('email') }}">
@@ -34,6 +35,7 @@
 
         <form id="form-register" class="auth-form" method="POST" action="{{ route('register') }}">
             @csrf
+            <input type="hidden" name="_tab" value="register">
             <div class="input-group">
                 <label>Full Name</label>
                 <input type="text" name="name" required placeholder="John Doe" value="{{ old('name') }}">

@@ -23,8 +23,13 @@ class Pet extends Model
     }
 
     public function applications()
-{
-    // Make sure the namespace is exactly like this:
-    return $this->hasMany(\App\Models\Application::class);
-}
+    {
+        // Make sure the namespace is exactly like this:
+        return $this->hasMany(\App\Models\Application::class);
+    }
+
+    public function photos()
+    {
+        return $this->hasMany(PetPhoto::class);
+    }
 }

@@ -37,32 +37,33 @@ class StaffController extends Controller
     public function managePets(Request $request)
     {
         $sort = $request->query('sort', 'latest');
-        $search = $request->query('search'); 
+        $search = $request->query('search');
+
         
-        $pets = Pet::when($search, function($query) use ($search) {
-                       $query->where('name', 'like', "%{$search}%")
-                             ->orWhere('type', 'like', "%{$search}%");
-                   })
-                   ->when($sort === 'oldest', fn($q) => $q->oldest())
-                   ->when($sort === 'latest', fn($q) => $q->latest())
-                   ->when($sort === 'ready', fn($q) => $q->where('status', 'Ready for Adoption')->latest())
-                   ->when($sort === 'review', fn($q) => $q->where('status', 'Under Review')->latest())
-                   ->when($sort === 'home', fn($q) => $q->where('status', 'Found a Home')->latest())
-                   ->get();
+        $pets = Pet::with('photos')->when($search, function($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%")
+                            ->orWhere('type', 'like', "%{$search}%");
+                })
+                ->when($sort === 'oldest', fn($q) => $q->oldest())
+                ->when($sort === 'latest', fn($q) => $q->latest())
+                ->when($sort === 'ready', fn($q) => $q->where('status', 'Ready for Adoption')->latest())
+                ->when($sort === 'review', fn($q) => $q->where('status', 'Under Review')->latest())
+                ->when($sort === 'home', fn($q) => $q->where('status', 'Found a Home')->latest())
+                ->paginate(12)->withQueryString();
 
         return view('staff.manage-pets', compact('pets'));
     }
 
     // 3. Applications View
-    public function applications(Request $request)
-    {
-        $applications = Application::with(['user', 'pet'])
-            ->orderByRaw("FIELD(status, 'Pending', 'Under Review', 'Approved', 'Rejected')")
-            ->latest()
-            ->get();
+    public function applications(Request $request) {
+    $status = $request->query('status');
+    $applications = Application::with(['user', 'pet', 'welfareCheckins'])
+        ->when($status, fn($q) => $q->where('status', $status))
+        ->orderByRaw("FIELD(status, 'Under Review', 'Approved for Adoption', 'Application Declined')")
+        ->latest()->get();
+    return view('staff.applications', compact('applications', 'status'));
+}
 
-        return view('staff.applications', compact('applications'));
-    }
 
     // 4. Store New Pet
     public function storePet(Request $request) 
@@ -164,6 +165,20 @@ class StaffController extends Controller
         return back()->with('success', 'Pet updated successfully!');
     }
 
+    public function archivePet(Pet $pet)
+{
+    $pet->update(['status' => 'No Longer Available']);
+
+    ActivityLog::create([
+        'type'  => 'pet',
+        'title' => auth()->user()->name . ' archived ' . $pet->name . '.',
+        'status' => 'No Longer Available',
+        'icon'  => '📦'
+    ]);
+
+    return back()->with('success', $pet->name . ' has been archived.');
+}
+
     public function updateApplication(Request $request, Application $application)
     {
         $validated = $request->validate([
@@ -174,6 +189,16 @@ class StaffController extends Controller
             $application->status = 'Approved for Adoption';
             $application->pet->update(['status' => 'Found a Home']);
             $message = "Application approved! The adopter has been notified.";
+
+            // Decline all OTHER pending applications for this pet
+            Application::where('pet_id', $application->pet_id)
+                ->where('id', '!=', $application->id)
+                ->where('status', 'Under Review')
+                ->each(function($other) {
+                    $other->update(['status' => 'Application Declined']);
+                    $other->user->notify(new \App\Notifications\ApplicationStatusUpdated($other));
+                });
+
         } else {
             $application->status = 'Application Declined';
             $application->pet->update(['status' => 'Ready for Adoption']);
@@ -183,10 +208,9 @@ class StaffController extends Controller
         $application->reviewed_by = auth()->id();
         $application->save();
 
-        // Trigger Notification to Adopter
+        // Notify the adopter whose application was just actioned
         $application->user->notify(new \App\Notifications\ApplicationStatusUpdated($application));
 
-        // Log it for the Staff Dashboard
         ActivityLog::create([
             'type' => 'application',
             'title' => auth()->user()->name . " " . $validated['action'] . "d an application for " . $application->pet->name,
@@ -195,5 +219,59 @@ class StaffController extends Controller
         ]);
 
         return back()->with('success', $message);
+    }
+
+    public function addPhoto(Request $request, Pet $pet)
+    {
+        $request->validate([
+            'photos.*' => 'required|image|mimes:jpeg,png,jpg,webp|max:2048',
+        ]);
+
+        foreach ($request->file('photos') as $file) {
+            $path = $file->store('pet-photos', 'public');
+            $pet->photos()->create(['image' => $path]);
+        }
+
+        ActivityLog::create([
+            'type'   => 'pet',
+            'title'  => auth()->user()->name . ' added photos for ' . $pet->name,
+            'status' => $pet->status,
+            'icon'   => '🖼️'
+        ]);
+
+        return back()->with('success', 'Photos uploaded successfully!');
+    }
+
+    public function deletePhoto(Pet $pet, \App\Models\PetPhoto $photo)
+    {
+        \Illuminate\Support\Facades\Storage::disk('public')->delete($photo->image);
+        $photo->delete();
+        return back()->with('success', 'Photo removed.');
+    }
+
+    public function managePhotos(Pet $pet)
+    {
+        $pet->load('photos');
+        return view('staff.pet-photos', compact('pet'));
+    }
+
+    public function verifyUser(Request $request, \App\Models\User $user)
+    {
+        $request->validate([
+            'action' => 'required|in:verify,reject',
+        ]);
+
+        $user->update([
+            'verification_status' => $request->action === 'verify' ? 'verified' : 'rejected',
+        ]);
+
+        \App\Models\ActivityLog::create([
+            'type'   => 'system',
+            'title'  => auth()->user()->name . ' ' . ($request->action === 'verify' ? 'verified' : 'rejected') . ' ' . $user->name . "'s ID.",
+            'status' => $user->verification_status,
+            'icon'   => $request->action === 'verify' ? '✅' : '❌',
+        ]);
+
+        return back()->with('success', $user->name . "'s verification has been " . ($request->action === 'verify' ? 'approved' : 'rejected') . '.');
     }
 }

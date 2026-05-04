@@ -29,22 +29,61 @@
             </nav>
         </div>
 
-        <div class="p-4 border-t border-slate-800">
-            <div class="flex items-center gap-3 mb-4 px-2">
-                <div class="w-10 h-10 rounded-full bg-indigo-500 text-white flex items-center justify-center font-bold">
+        <div class="p-4 border-t border-slate-800" x-data="{ openUserMenu: false }" @click.outside="openUserMenu = false">
+
+            {{-- Clickable User Row --}}
+            <div @click="openUserMenu = !openUserMenu"
+                class="flex items-center gap-3 px-2 py-2 rounded-xl cursor-pointer hover:bg-slate-800 transition select-none">
+                <div class="w-10 h-10 rounded-full bg-indigo-500 text-white flex items-center justify-center font-bold shrink-0">
                     {{ substr(Auth::user()->name, 0, 1) }}
                 </div>
-                <div>
-                    <p class="text-sm font-bold text-white">{{ Auth::user()->name }}</p>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-bold text-white truncate">{{ Auth::user()->name }}</p>
                     <p class="text-xs text-indigo-300 uppercase tracking-wider font-black">{{ Auth::user()->role }}</p>
                 </div>
+                <svg class="w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0"
+                    :class="{ 'rotate-180': openUserMenu }"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
             </div>
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" class="w-full text-left px-4 py-2 text-red-400 hover:bg-slate-800 hover:text-red-300 rounded-lg text-sm font-bold transition">
-                    🚪 Secure Logout
-                </button>
-            </form>
+
+            {{-- Dropdown Menu --}}
+            <div x-show="openUserMenu"
+                x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0 -translate-y-2"
+                x-transition:enter-end="opacity-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-150"
+                x-transition:leave-start="opacity-100 translate-y-0"
+                x-transition:leave-end="opacity-0 -translate-y-2"
+                x-cloak
+                class="mt-2 bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+
+                <a href="{{ route('profile.edit') }}"
+                class="flex items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                    <span class="font-medium">Profile Settings</span>
+                </a>
+
+                <div class="border-t border-slate-700"></div>
+
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <div class="border-t border-slate-700"></div>
+
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit"
+                        class="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-slate-700 hover:text-red-300 transition font-medium">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                        </svg>
+                        Secure Logout
+                    </button>
+                </form>
+            </div>
         </div>
     </aside>
 

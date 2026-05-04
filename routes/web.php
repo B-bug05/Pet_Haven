@@ -46,11 +46,15 @@ Route::get('/pets/search', [AdoptController::class, 'search'])->name('pets.searc
 |--------------------------------------------------------------------------
 */
 // 👈 BYPASS ALIASES: Use CheckRole::class directly!
-Route::middleware(['auth', 'verified', CheckRole::class.':adopter'])->group(function () {
+//'verified', <- Input for email verfication if you want to use it in the future, but for now we are skipping it to avoid confusion.
+Route::middleware(['auth',  CheckRole::class.':adopter'])->group(function () {
     
     // Dashboard: View submitted applications
     Route::get('/dashboard', function () {
-        $applications = auth()->user()->applications()->with('pet')->latest()->get();
+        $applications = auth()->user()->applications()
+            ->with(['pet', 'welfareCheckins'])
+            ->latest()
+            ->get();
         return view('dashboard', compact('applications'));
     })->name('dashboard');
 
@@ -87,13 +91,18 @@ Route::middleware(['auth', 'verified', CheckRole::class.':adopter'])->group(func
         }
 
         // Fetch the filtered pets
-        $pets = $query->latest()->get();
+        $pets = $query->latest()->paginate(9);
         
         // Grab the user's favorites array so the hearts turn red!
         $favorites = auth()->user()->favorites->pluck('id')->toArray();
 
         return view('discover', compact('pets', 'favorites'));
     })->name('discover');
+
+    Route::post('/notifications/read-all', function () {
+        auth()->user()->unreadNotifications->markAsRead();
+        return back();
+    })->name('notifications.read-all');
 
     // Individual Pet Profile
     Route::get('/pets/{pet}', [AdoptController::class, 'show'])->name('pets.show');
@@ -114,7 +123,19 @@ Route::middleware(['auth', 'verified', CheckRole::class.':adopter'])->group(func
         return back();
     })->name('notifications.read');
 
-    // Profile Settings (Standard Breeze)
+    // Welfare Check-in submission
+    Route::post('/welfare-checkins/{checkin}', [App\Http\Controllers\WelfareCheckinController::class, 'store'])->name('welfare.submit');
+
+    Route::post('/profile/verify-id', [ProfileController::class, 'uploadId'])->name('profile.upload-id');
+
+});
+
+/*
+|--------------------------------------------------------------------------
+| PROFILE ROUTES (All authenticated users)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -145,6 +166,22 @@ Route::middleware(['auth', CheckRole::class.':staff'])->prefix('staff')->name('s
     // 🌟 THE MISSING ROUTE: Form Submission for Application Reviews
     Route::patch('/applications/{application}', [StaffController::class, 'updateApplication'])->name('applications.update');
 
+    Route::post('/notifications/read-all', function () {
+        auth()->user()->unreadNotifications->markAsRead();
+        return back();
+    })->name('notifications.read-all');
+
+    Route::patch('/pets/{pet}/archive', [StaffController::class, 'archivePet'])->name('pets.archive');
+
+    // Welfare Check-in request
+    Route::post('/applications/{application}/welfare-request', [App\Http\Controllers\WelfareCheckinController::class, 'request'])->name('welfare.request');
+
+    Route::post('/pets/{pet}/photos', [StaffController::class, 'addPhoto'])->name('pets.photos.store');
+    Route::delete('/pets/{pet}/photos/{photo}', [StaffController::class, 'deletePhoto'])->name('pets.photos.destroy');
+    Route::get('/pets/{pet}/photos', [StaffController::class, 'managePhotos'])->name('pets.photos.index');
+
+    Route::patch('/users/{user}/verify', [StaffController::class, 'verifyUser'])->name('staff.users.verify');
+
 });
 
 
@@ -154,16 +191,11 @@ Route::middleware(['auth', CheckRole::class.':staff'])->prefix('staff')->name('s
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', CheckRole::class.':admin'])->prefix('admin')->name('admin.')->group(function () {
-    
-    // Dashboard
     Route::get('/dashboard', [\App\Http\Controllers\AdminController::class, 'dashboard'])->name('dashboard');
-    
-    // User Management
     Route::get('/users', [\App\Http\Controllers\AdminController::class, 'users'])->name('users');
     Route::patch('/users/{user}/role', [\App\Http\Controllers\AdminController::class, 'updateRole'])->name('users.role');
-    // System Logs
+    Route::patch('/users/{user}/verify', [\App\Http\Controllers\AdminController::class, 'verifyUser'])->name('users.verify'); // ← add this
     Route::get('/logs', [\App\Http\Controllers\AdminController::class, 'logs'])->name('logs');
-
 });
 
 

@@ -16,8 +16,17 @@ class Application extends Model
         'adopter_address',
         'contact_number',
         'adopter_message',
-        'reviewed_by'
+        'reviewed_by',
+        'has_other_pets',
+        'housing_type',
+        'landlord_allows_pets',
+        'hours_alone',
+        'has_outdoor_space',
+        'previous_pet_experience',
+        'why_this_pet',
     ];
+
+    protected $with = ['user', 'pet', 'welfareCheckins'];
 
     // The person applying
     public function user()
@@ -35,5 +44,10 @@ class Application extends Model
     public function reviewer()
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function welfareCheckins()
+    {
+        return $this->hasMany(WelfareCheckin::class);
     }
 }

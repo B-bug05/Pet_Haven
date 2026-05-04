@@ -20,7 +20,7 @@ class AdoptController extends Controller
             });
         }
 
-        $pets = $query->latest()->get();
+        $pets = $query->latest()->paginate(9);
         return view('guest-browse', compact('pets'));
     }
 
@@ -41,6 +41,7 @@ class AdoptController extends Controller
 
     public function show(\App\Models\Pet $pet)
     {
+        $pet->load('photos');
         $hasApplied = false;
 
         if (auth()->check()) {
@@ -56,50 +57,35 @@ class AdoptController extends Controller
     }
 
     public function search(Request $request)
-    {
-        // 1. Lock search to available pets
-        $query = \App\Models\Pet::where('status', 'Ready for Adoption');
+{
+    $query = \App\Models\Pet::where('status', 'Ready for Adoption');
 
-        // 2. Text Search
-        if ($request->filled('search')) {
-            $query->where(function($q) use ($request) {
-                $q->where('name', 'LIKE', '%' . $request->search . '%')
-                  ->orWhere('breed', 'LIKE', '%' . $request->search . '%')
-                  ->orWhere('type', 'LIKE', '%' . $request->search . '%');
-            });
-        }
-
-        // 3. Dropdown Filter Logic (Matches your HTML exactly)
-        if ($request->filled('filter') && $request->filter !== 'all') {
-            $filter = $request->filter;
-            
-            if ($filter === 'my_favorites' && auth()->check()) {
-                $query->whereIn('id', auth()->user()->favorites->pluck('id'));
-            } elseif ($filter === 'dogs') {
-                $query->where('type', 'Dog');
-            } elseif ($filter === 'cats') {
-                $query->where('type', 'Cat');
-            }
-            // 'recently_added' is handled automatically by latest() below
-        }
-
-        // 4. Guest Browse Logic (Backwards compatibility)
-        if ($request->filled('type') && $request->type !== 'all' && !$request->filled('filter')) {
-            $query->where('type', $request->type);
-        }
-        if ($request->filled('age') && $request->age !== 'any') {
-            if ($request->age === 'baby') {
-                $query->where('age', 'LIKE', '%Month%')->orWhere('age', '0 Years');
-            } elseif ($request->age === 'adult') {
-                $query->where('age', 'REGEXP', '[1-7]');
-            } elseif ($request->age === 'senior') {
-                $query->where('age', 'REGEXP', '[8-9]|[1-9][0-9]');
-            }
-        }
-
-        $pets = $query->latest()->get();
-        $favorites = auth()->check() ? auth()->user()->favorites->pluck('id')->toArray() : [];
-
-        return view('pets._grid', compact('pets', 'favorites'))->render();
+    if ($request->filled('search')) {
+        $query->where(function($q) use ($request) {
+            $q->where('name', 'LIKE', '%' . $request->search . '%')
+              ->orWhere('breed', 'LIKE', '%' . $request->search . '%')
+              ->orWhere('type', 'LIKE', '%' . $request->search . '%');
+        });
     }
+
+    if ($request->filled('filter') && $request->filter !== 'all') {
+        $filter = $request->filter;
+        if ($filter === 'my_favorites' && auth()->check()) {
+            $query->whereIn('id', auth()->user()->favorites->pluck('id'));
+        } elseif ($filter === 'dogs') {
+            $query->where('type', 'Dog');
+        } elseif ($filter === 'cats') {
+            $query->where('type', 'Cat');
+        }
+    }
+
+    $pets = $query->latest()->paginate(9, ['*'], 'page', $request->page ?? 1);
+    $favorites = auth()->check() ? auth()->user()->favorites->pluck('id')->toArray() : [];
+    $hasMore = $pets->hasMorePages();
+
+    return response()->json([
+        'html'    => view('pets._grid', compact('pets', 'favorites'))->render(),
+        'hasMore' => $hasMore,
+    ]);
+}
 }

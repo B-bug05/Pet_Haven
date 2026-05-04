@@ -19,121 +19,68 @@
         </form>
     </header>
 
-    <main class="pet-grid" id="petGridContainer">
-        @include('pets._grid', ['pets' => $pets])
-    </main>
-
-    <div class="modal-backdrop" id="filterBackdrop" onclick="closeOnOutsideClick(event, 'filterBackdrop')">
-        <div class="modal-box">
-            <span class="close-modal" onclick="closeModal('filterBackdrop')">&times;</span>
-            <h2 style="margin-bottom: 1.5rem; color: var(--text-dark);">Filter Pets</h2>
-            
-            <div class="filter-section">
-                <h4>Animal Type</h4>
-                <div class="filter-options">
-                    <span class="filter-chip active" data-category="type" data-value="all">All</span>
-                    <span class="filter-chip" data-category="type" data-value="Dog">Dogs</span>
-                    <span class="filter-chip" data-category="type" data-value="Cat">Cats</span>
-                </div>
-            </div>
-
-            <div class="filter-section">
-                <h4>Age Group</h4>
-                <div class="filter-options">
-                    <span class="filter-chip active" data-category="age" data-value="any">Any Age</span>
-                    <span class="filter-chip" data-category="age" data-value="baby">Baby</span>
-                    <span class="filter-chip" data-category="age" data-value="adult">Adult</span>
-                </div>
-            </div>
-
-            <button class="btn-auth" id="applyFiltersBtn" style="margin-top: 1rem; width: 100%;">Apply Filters</button>
-        </div>
+    <div id="petGridContainer" class="pet-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 2rem; max-width: 1200px; margin: 0 auto; padding: 0 1rem;">
+        @include('pets._grid', ['pets' => $pets, 'favorites' => []])
     </div>
-    <div class="modal-backdrop" id="applicationBackdrop" onclick="closeOnOutsideClick(event, 'applicationBackdrop')">
-        <div class="auth-modal" style="max-width: 500px;">
-            <span class="close-modal" onclick="closeModal('applicationBackdrop')">&times;</span>
-            
-            <div style="text-align: center; margin-bottom: 1.5rem;">
-                <h3 style="color: var(--primary); margin-bottom: 0.5rem;">Apply for Adoption</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem;">You are applying to give <strong id="apply_pet_name" style="color: var(--text-dark);">this pet</strong> a forever home!</p>
-            </div>
 
-            <form method="POST" action="{{ route('applications.store') }}">
-                @csrf
-                <input type="hidden" name="pet_id" id="apply_pet_id">
-
-                <div class="input-group">
-                    <label>Home Address</label>
-                    <input type="text" name="adopter_address" required placeholder="123 Main St, City, State" value="{{ old('adopter_address') }}">
-                </div>
-                
-                <div class="input-group">
-                    <label>Contact Number</label>
-                    <input type="text" name="contact_number" required placeholder="(555) 123-4567" value="{{ old('contact_number') }}">
-                </div>
-
-                <div class="input-group">
-                    <label>Why are you a good match? (Optional)</label>
-                    <textarea name="adopter_message" rows="4" placeholder="Tell us about your home, family, and experience with pets..." style="width: 100%; padding: 0.8rem; border: 1.5px solid #e2dcd3; border-radius: 10px; font-family: inherit; font-size: 0.95rem; resize: vertical;">{{ old('adopter_message') }}</textarea>
-                </div>
-
-                <button type="submit" class="btn-auth" style="margin-top: 1rem;">Submit Application</button>
-            </form>
-        </div>
+    <div style="text-align: center; margin: 2rem 0;">
+        <button id="loadMoreBtn" style="background: var(--primary, #e67e22); color: white; border: none; padding: 0.8rem 2.5rem; border-radius: 50px; font-size: 1rem; font-weight: 600; cursor: pointer; display: none;">
+            Load More Pets 🐾
+        </button>
     </div>
 
     <script>
-    // 1. Keep track of what the user selected
-    let selections = { type: 'all', age: 'any' };
-
-    // 2. Function to open the Application Modal
-    function openApplicationModal(petId, petName) {
-        document.getElementById('apply_pet_id').value = petId;
-        document.getElementById('apply_pet_name').innerText = petName;
-        openModal('applicationBackdrop');
-    }
-
-    // 3. Handle Chip Clicks (Highlighting)
-    document.querySelectorAll('.filter-chip').forEach(chip => {
-        chip.addEventListener('click', function() {
-            this.parentElement.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-            this.classList.add('active');
-
-            const category = this.getAttribute('data-category');
-            const value = this.getAttribute('data-value');
-            selections[category] = value;
-        });
-    });
-
-    // 4. Function that talks to Laravel Controller
-    function performSearch() {
         const searchInput = document.getElementById('petSearch');
-        const search = searchInput ? searchInput.value : '';
-        
-        // This builds the URL for your search method
-        const url = `{{ route('pets.search') }}?search=${search}&type=${selections.type}&age=${selections.age}`;
+        const container = document.getElementById('petGridContainer');
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
 
-        fetch(url)
-            .then(res => res.text())
-            .then(html => {
-                // This injects the new pets into the grid
-                const container = document.getElementById('petGridContainer');
-                if (container) {
-                    container.innerHTML = html;
-                }
-                
-                // Close the modal if it's open
-                if (typeof closeModal === 'function') {
-                    closeModal('filterBackdrop');
-                }
-            })
-            .catch(err => console.error("Filter error:", err));
-    }
+        let currentPage = 1;
+        let currentSearch = '';
+        let currentFilter = 'all';
+        let isLoading = false;
 
-    // 5. Connect the buttons to the function
-    document.getElementById('applyFiltersBtn').addEventListener('click', performSearch);
-    
-    // Also trigger as you type
-    document.getElementById('petSearch').addEventListener('input', performSearch);
-</script>
+        const fetchPets = (append = false) => {
+            if (isLoading) return;
+            isLoading = true;
+
+            const url = `{{ route('pets.search') }}?search=${currentSearch}&filter=${currentFilter}&page=${currentPage}`;
+
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    if (append) {
+                        container.insertAdjacentHTML('beforeend', data.html);
+                    } else {
+                        container.innerHTML = data.html;
+                    }
+                    loadMoreBtn.style.display = data.hasMore ? 'inline-block' : 'none';
+                    isLoading = false;
+                })
+                .catch(err => {
+                    console.error(err);
+                    isLoading = false;
+                });
+        };
+
+        searchInput.addEventListener('input', () => {
+            currentSearch = searchInput.value;
+            currentPage = 1;
+            fetchPets(false);
+        });
+
+        document.getElementById('applyFiltersBtn').addEventListener('click', () => {
+            currentFilter = selections.type !== 'all' ? selections.type.toLowerCase() + 's' : 'all';
+            currentPage = 1;
+            fetchPets(false);
+        });
+
+        loadMoreBtn.addEventListener('click', () => {
+            currentPage++;
+            fetchPets(true);
+        });
+
+        @if($pets->hasMorePages())
+            loadMoreBtn.style.display = 'inline-block';
+        @endif
+    </script>
 @endsection

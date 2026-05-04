@@ -1,47 +1,52 @@
 <section>
-    <header>
-        <h2 class="text-lg font-medium text-gray-900">
-            {{ __('Update Password') }}
-        </h2>
+    <h2 style="font-size: 1.1rem; font-weight: 700; color: var(--text-dark); margin: 0 0 0.25rem 0;">Update Password</h2>
+    <p style="color: var(--text-muted); font-size: 0.875rem; margin: 0 0 1.5rem 0;">Use a long, random password to keep your account secure.</p>
 
-        <p class="mt-1 text-sm text-gray-600">
-            {{ __('Ensure your account is using a long, random password to stay secure.') }}
-        </p>
-    </header>
-
-    <form method="post" action="{{ route('password.update') }}" class="mt-6 space-y-6">
+    <form method="POST" action="{{ route('password.update') }}">
         @csrf
-        @method('put')
+        @method('PUT')
 
-        <div>
-            <x-input-label for="update_password_current_password" :value="__('Current Password')" />
-            <x-text-input id="update_password_current_password" name="current_password" type="password" class="mt-1 block w-full" autocomplete="current-password" />
-            <x-input-error :messages="$errors->updatePassword->get('current_password')" class="mt-2" />
+        {{-- Current Password --}}
+        <div style="margin-bottom: 1.25rem;">
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-dark); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.5px;">Current Password</label>
+            <input type="password" name="current_password" autocomplete="current-password"
+                style="width: 100%; padding: 0.75rem 1rem; border: 1.5px solid #e2dcd3; border-radius: 10px; font-size: 0.95rem; outline: none; font-family: inherit; box-sizing: border-box; transition: border-color 0.2s;"
+                onfocus="this.style.borderColor='#e67e22'" onblur="this.style.borderColor='#e2dcd3'">
+            @error('current_password', 'updatePassword')
+                <p style="color: #e3342f; font-size: 0.8rem; margin-top: 0.25rem;">{{ $message }}</p>
+            @enderror
         </div>
 
-        <div>
-            <x-input-label for="update_password_password" :value="__('New Password')" />
-            <x-text-input id="update_password_password" name="password" type="password" class="mt-1 block w-full" autocomplete="new-password" />
-            <x-input-error :messages="$errors->updatePassword->get('password')" class="mt-2" />
+        {{-- New Password --}}
+        <div style="margin-bottom: 1.25rem;">
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-dark); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.5px;">New Password</label>
+            <input type="password" name="password" autocomplete="new-password"
+                style="width: 100%; padding: 0.75rem 1rem; border: 1.5px solid #e2dcd3; border-radius: 10px; font-size: 0.95rem; outline: none; font-family: inherit; box-sizing: border-box; transition: border-color 0.2s;"
+                onfocus="this.style.borderColor='#e67e22'" onblur="this.style.borderColor='#e2dcd3'">
+            @error('password', 'updatePassword')
+                <p style="color: #e3342f; font-size: 0.8rem; margin-top: 0.25rem;">{{ $message }}</p>
+            @enderror
         </div>
 
-        <div>
-            <x-input-label for="update_password_password_confirmation" :value="__('Confirm Password')" />
-            <x-text-input id="update_password_password_confirmation" name="password_confirmation" type="password" class="mt-1 block w-full" autocomplete="new-password" />
-            <x-input-error :messages="$errors->updatePassword->get('password_confirmation')" class="mt-2" />
+        {{-- Confirm Password --}}
+        <div style="margin-bottom: 1.25rem;">
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-dark); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.5px;">Confirm New Password</label>
+            <input type="password" name="password_confirmation" autocomplete="new-password"
+                style="width: 100%; padding: 0.75rem 1rem; border: 1.5px solid #e2dcd3; border-radius: 10px; font-size: 0.95rem; outline: none; font-family: inherit; box-sizing: border-box; transition: border-color 0.2s;"
+                onfocus="this.style.borderColor='#e67e22'" onblur="this.style.borderColor='#e2dcd3'">
+            @error('password_confirmation', 'updatePassword')
+                <p style="color: #e3342f; font-size: 0.8rem; margin-top: 0.25rem;">{{ $message }}</p>
+            @enderror
         </div>
 
-        <div class="flex items-center gap-4">
-            <x-primary-button>{{ __('Save') }}</x-primary-button>
-
-            @if (session('status') === 'password-updated')
-                <p
-                    x-data="{ show: true }"
-                    x-show="show"
-                    x-transition
-                    x-init="setTimeout(() => show = false, 2000)"
-                    class="text-sm text-gray-600"
-                >{{ __('Saved.') }}</p>
+        {{-- Submit --}}
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <button type="submit"
+                style="background: #e67e22; color: white; border: none; padding: 0.7rem 1.75rem; border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer;">
+                Update Password
+            </button>
+            @if(session('status') === 'password-updated')
+                <p style="color: #155724; font-size: 0.85rem; font-weight: 600;">✅ Password updated!</p>
             @endif
         </div>
     </form>

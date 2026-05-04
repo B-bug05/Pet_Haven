@@ -57,4 +57,27 @@ class ProfileController extends Controller
 
         return Redirect::to('/');
     }
+
+    public function uploadId(Request $request)
+    {
+        $request->validate([
+            'id_document' => 'required|file|mimes:jpeg,png,jpg,pdf|max:5120',
+        ]);
+
+        $user = auth()->user();
+
+        // Delete old document if exists
+        if ($user->id_document) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($user->id_document);
+        }
+
+        $path = $request->file('id_document')->store('id-documents', 'public');
+
+        $user->update([
+            'id_document'         => $path,
+            'verification_status' => 'pending',
+        ]);
+
+        return back()->with('success', 'Your ID has been submitted for verification.');
+    }
 }
